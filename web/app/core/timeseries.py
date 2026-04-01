@@ -16,25 +16,25 @@ def perform_fft(water_levels, dt_hours):
     return xf, yf
 
 def extract_utide(time_series, wl_series, latitude):
-    """Mengekstraksi konstituen harmonik pasang surut menggunakan UTide"""
-    
-    # 1. Standardisasi ke matriks Numpy 1D untuk mencegah kegagalan kalkulasi internal
-    time_arr = time_series.to_numpy()
-    wl_arr = wl_series.to_numpy()
-    
-    # 2. Konversi larik waktu absolut ke dalam format days (hari) sesuai standar UTide
-    time_mdates = mdates.date2num(time_arr)
-    
-    # 3. Pemrosesan matriks menggunakan metode Ordinary Least Squares (OLS)
-    coef = utide.solve(
-        time_mdates, 
-        wl_arr, 
-        lat=latitude, 
-        method='ols',
-        conf_int='linear'
+    from utide import solve, reconstruct
+    import numpy as np
+    import pandas as pd
+
+    # 1. Ikutin gaya dosen: Langsung jadiin numpy datetime64 & float
+    t = pd.to_datetime(time_series).to_numpy() 
+    u = wl_series.to_numpy(dtype=float)
+
+    # 2. Panggil solve pake parameter sakti dosen
+    coef = solve(
+        t, u,
+        lat=latitude,
+        method="ols",
+        conf_int="linear",
+        trend=False,        # Biar gak pusing sama kenaikan muka air rata-rata
+        Rayleigh_min=1.0,   # Kunci biar gak 'empty'
     )
+
+    # 3. Rekonstruksi
+    rec = reconstruct(t, coef)
     
-    # 4. Rekonstruksi gelombang prediksi berbasis koefisien konstituen astronomis
-    reconstruct = utide.reconstruct(time_mdates, coef)
-    
-    return coef, reconstruct.h
+    return coef, rec.h
