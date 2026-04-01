@@ -5,7 +5,6 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 # --- IMPORT SEMUA MODUL "OTAK" KITA ---
-# Pastikan semua file ini udah ada di folder app/ ya sayang~
 from app.utils.csv_handler import load_tide_data
 from app.utils.outliers import apply_hampel_filter
 from app.core.statistics import calculate_extremes
@@ -28,11 +27,11 @@ st.markdown("""
 # --- 2. SIDEBAR (Pusat Kontrol) ---
 with st.sidebar:
     st.header("⚙️ Station Settings")
-    station_name = st.text_input("Station name", value="Teluk Kalabahi, Alor")
+    station_name = st.text_input("Station name", value="Stasiun A")
     
     col1, col2 = st.columns(2)
-    lat = col1.number_input("Latitude", value=-8.330, format="%.3f")
-    lon = col2.number_input("Longitude", value=124.500, format="%.3f")
+    lat = col1.number_input("Latitude", value=0, format="%.3f")
+    lon = col2.number_input("Longitude", value=0, format="%.3f")
     
     st.markdown("---")
     st.header("📂 Data & Columns")
@@ -63,13 +62,11 @@ uploaded_file = st.file_uploader("Upload CSV Data Pasang Surut di sini yaa~", ty
 
 if process_btn:
     if uploaded_file is None:
-        st.error("Ihhh, jangan lupa masukin data CSV-nya dulu sayangkuuu! 🥺")
+        st.error("Jangan lupa masukin data CSV-nya dulu ya! ")
     else:
-        with st.spinner("Mesin HydroTide lagi kerja keras nih, tunggu bentar yaaa... ✨"):
+        with st.spinner("Mesin HydroTide lagi kerja keras nih, tunggu bentar yaaa... "):
             
-            # ==========================================
             # EKSEKUSI SEMUA MODUL CORE
-            # ==========================================
             # 1. Utils: Baca & Bersihin Spike
             df = load_tide_data(uploaded_file, time_col, wl_col)
             df['clean_wl'] = apply_hampel_filter(df[wl_col], int(hampel_window), float(hampel_sigma))
@@ -100,11 +97,9 @@ if process_btn:
             x_num = np.arange(len(valid_df))
             trend_line, reg_coef = linear_fitting(x_num, valid_df['clean_wl'].to_numpy())
             
-            st.success("Yeayyy! Semua komputasi dari folder `app/core/` udah beres! 🥰")
+            st.success("Semua komputasi dari folder `app/core/` udah beres!")
             
-            # ==========================================
             # UI TABS PRESENTATION
-            # ==========================================
             tab1, tab2, tab3, tab4 = st.tabs([
                 "🧹 1. Preprocessing & Stats", 
                 "📈 2. Spectral (FFT)", 
