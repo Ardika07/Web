@@ -30,8 +30,8 @@ with st.sidebar:
     station_name = st.text_input("Station name", value="Stasiun A")
     
     col1, col2 = st.columns(2)
-    lat = col1.number_input("Latitude", value=-6, format="%.3f")
-    lon = col2.number_input("Longitude", value=108, format="%.3f")
+    lat = col1.number_input("Latitude", value=0.000, format="%.3f")
+    lon = col2.number_input("Longitude", value=0.000, format="%.3f")
     
     st.markdown("---")
     st.header("📂 Data & Columns")
