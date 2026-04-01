@@ -168,21 +168,28 @@ if process_btn:
             # --- TAB 3: UTIDE HARMONIC ---
             with tab3:
                 st.subheader("🌊 3) Table of Dominant Constituents & Reconstruction")
-                if 'utide_pred' in valid_df.columns:
+                
+                # Cek dulu apakah variabel utide_coef-nya beneran ada isinya
+                if 'utide_pred' in valid_df.columns and utide_coef is not None:
                     
-                    # Ekstrak nama, amplitudo, dan fase dari UTide
-                    constituents_df = pd.DataFrame({
-                        'name': utide_coef.name,
-                        'amplitude': utide_coef.A,
-                        'phase_deg': utide_coef.g
-                    })
-                    # Urutin dari amplitudo terbesar ke terkecil
-                    constituents_df = constituents_df.sort_values(by='amplitude', ascending=False).reset_index(drop=True)
+                    # Kita rapihin datanya buat tabel
+                    const_data = {
+                        'Constituent': utide_coef['name'],
+                        'Amplitude (m)': utide_coef['A'],
+                        'Phase (deg)': utide_coef['g']
+                    }
                     
-                    # Tampilin jadi tabel interaktif
+                    constituents_df = pd.DataFrame(const_data)
+                    
+                    # Urutin dari yang amplitudonya paling gede biar kelihatan siapa yang dominan
+                    constituents_df = constituents_df.sort_values(by='Amplitude (m)', ascending=False).reset_index(drop=True)
+                    
+                    # TAMPILIN TABEL (Ini nih yang tadi kosong!)
                     st.dataframe(constituents_df, use_container_width=True)
+                    
                     st.write("---")
                     
+                    # GRAFIK PERBANDINGAN
                     fig3 = go.Figure()
                     fig3.add_trace(go.Scatter(x=valid_df[time_col], y=valid_df['clean_wl'], mode='lines', name='Observasi', line=dict(color='rgba(0, 181, 173, 0.5)')))
                     fig3.add_trace(go.Scatter(x=valid_df[time_col], y=valid_df['utide_pred'], mode='lines', name='UTide Prediksi', line=dict(color='#FF5733')))
@@ -190,8 +197,7 @@ if process_btn:
                     fig3.update_layout(title="Perbandingan Observasi vs Prediksi Pasang Surut", plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)")
                     st.plotly_chart(fig3, use_container_width=True)
                 else:
-                    st.info("Data UTide belum tersedia.")
-
+                    st.warning("Duh, mesin UTide belum berhasil ngeluarin hasil nih. Coba cek format datanya ya!")
             # --- TAB 4: REGRESSION ---
             with tab4:
                 st.subheader("📏 4) Trend Analysis (Linear Regression)")
