@@ -18,7 +18,7 @@ def load_tide_data(filepath, time_col, wl_col):
         filepath.seek(0)
         # Kita coba pakai titik koma (;) dulu karena khas Excel Indonesia
         try:
-            df = pd.read_csv(filepath, sep=';')
+            df = pd.read_csv(filepath)
         except Exception:
             # Kalau masih gagal, putar balik lagi dan paksa koma (,)
             filepath.seek(0)
