@@ -5,6 +5,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 # --- IMPORT SEMUA MODUL "OTAK" KITA ---
+# Pastikan semua file ini udah ada di folder app/ ya sayang~
 from app.utils.csv_handler import load_tide_data
 from app.utils.outliers import apply_hampel_filter
 from app.core.statistics import calculate_extremes
@@ -27,16 +28,16 @@ st.markdown("""
 # --- 2. SIDEBAR (Pusat Kontrol) ---
 with st.sidebar:
     st.header("⚙️ Station Settings")
-    station_name = st.text_input("Station name", value="Stasiun A")
+    station_name = st.text_input("Station name", value="Teluk Kalabahi, Alor")
     
     col1, col2 = st.columns(2)
-    lat = col1.number_input("Latitude", value=0.000, format="%.3f")
-    lon = col2.number_input("Longitude", value=0.000, format="%.3f")
+    lat = col1.number_input("Latitude", value=-8.330, format="%.3f")
+    lon = col2.number_input("Longitude", value=124.500, format="%.3f")
     
     st.markdown("---")
     st.header("📂 Data & Columns")
-    time_col = st.text_input("Time column", value="Time")
-    wl_col = st.text_input("Water level column", value="Water level")
+    time_col = st.text_input("Time column", value="time")
+    wl_col = st.text_input("Water level column", value="wl")
     sampling_dt = st.number_input("Sampling dt (hours)", value=1.00, step=0.50)
     
     st.markdown("---")
@@ -62,12 +63,13 @@ uploaded_file = st.file_uploader("Upload CSV Data Pasang Surut di sini yaa~", ty
 
 if process_btn:
     if uploaded_file is None:
-        st.error("Jangan lupa masukin data CSV-nya dulu ya! ")
+        st.error("Ihhh, jangan lupa masukin data CSV-nya dulu yaa ")
     else:
-        with st.spinner("Lagi ngitung persentase data bolong... ✨"):
-        # Sekarang load_tide_data ngeluarin dua output
-            df, missing_percent = load_tide_data(uploaded_file, time_col, wl_col)
+        with st.spinner("Mesin HydroTide lagi kerja keras nih, tunggu bentar yaaa... "):
+            
+            # ==========================================
             # EKSEKUSI SEMUA MODUL CORE
+            # ==========================================
             # 1. Utils: Baca & Bersihin Spike
             df = load_tide_data(uploaded_file, time_col, wl_col)
             df['clean_wl'] = apply_hampel_filter(df[wl_col], int(hampel_window), float(hampel_sigma))
@@ -98,9 +100,11 @@ if process_btn:
             x_num = np.arange(len(valid_df))
             trend_line, reg_coef = linear_fitting(x_num, valid_df['clean_wl'].to_numpy())
             
-            st.success("Semua komputasi dari folder `app/core/` udah beres!")
+            st.success("Yeayyy! Semua komputasi dari folder `app/core/` udah beres!")
             
+            # ==========================================
             # UI TABS PRESENTATION
+            # ==========================================
             tab1, tab2, tab3, tab4 = st.tabs([
                 "🧹 1. Preprocessing & Stats", 
                 "📈 2. Spectral (FFT)", 
@@ -109,35 +113,12 @@ if process_btn:
             ])
             
             # --- TAB 1: PREPROCESSING ---
-            # --- TAB 1: PREPROCESSING ---
             with tab1:
-                st.subheader(f"📊 1) Statistics of the Data - {station_name}")
-                
-                valid_wl = len(df) - df['is_missing'].sum()
-                spikes_removed = (df[wl_col] != df['clean_wl']).sum() # Ini spike yang dibersihin Hampel
-                
-                m1, m2, m3, m4 = st.columns(4)
-                m1.metric("Valid WL", f"{int(valid_wl)}")
-                
-                # TAMPILIN PERSENTASE ASLI DI SINI!
-                m2.metric("Missing (%)", f"{missing_percent:.2f}%")
-                
-                m3.metric("Median dt (min)", f"{df[time_col].diff().median().total_seconds()/60:.2f}")
-                m4.metric("Spikes removed", f"{int(spikes_removed)}")
-                
-                # ... sisa metrik Mean, Min, Max ...
-                
-                # Bikin baris kedua (3 kolom)
-                m5, m6, m7 = st.columns(3)
-                m5.metric("Mean", f"{df['clean_wl'].mean():.4f}")
-                m6.metric("Min", f"{df['clean_wl'].min():.4f}")
-                m7.metric("Max", f"{df['clean_wl'].max():.4f}")
-                
-                # Bikin baris ketiga
-                st.metric("Range", f"{(df['clean_wl'].max() - df['clean_wl'].min()):.4f}")
-                
-                st.caption(f"**Start:** {df[time_col].min()} &nbsp;&nbsp;&nbsp; **End:** {df[time_col].max()}")
-                st.write("---")
+                st.subheader(f"📊 Summary Statistics - {station_name}")
+                col1, col2, col3 = st.columns(3)
+                col1.metric("Mean Sea Level (MSL)", f"{stats['MSL']:.3f} m")
+                col2.metric("Highest High Water", f"{stats['HHWL']:.3f} m")
+                col3.metric("Lowest Low Water", f"{stats['LLWL']:.3f} m")
                 
                 fig1 = go.Figure()
                 fig1.add_trace(go.Scatter(x=df[time_col], y=df[wl_col], mode='lines', name='Raw (Spikes)', line=dict(color='rgba(255, 99, 132, 0.4)')))
@@ -149,51 +130,19 @@ if process_btn:
 
             # --- TAB 2: FFT SPECTRUM ---
             with tab2:
-                st.subheader("⚡ 2) Fast Fourier Transform (Energy Spectrum)")
-                st.write("Spektrum energi berdasarkan periode (jam) untuk mencari siklus puncak gelombang pasang surut.")
+                st.subheader("⚡ Fast Fourier Transform (Energy Spectrum)")
+                st.write("Mengubah sinyal domain waktu menjadi domain frekuensi untuk mencari periode puncak gelombang.")
                 
                 fig2 = go.Figure()
-                # Kita ubah frekuensi jadi periode (Jam)
-                periode_jam = 1.0 / xf[1:]
-                
-                fig2.add_trace(go.Scatter(x=periode_jam, y=yf[1:], mode='lines', fill='tozeroy', line=dict(color='#8A2BE2')))
-                fig2.update_layout(
-                    title="FFT Power Spectrum", 
-                    xaxis_title="Periode Gelombang (Jam)", 
-                    yaxis_title="Amplitudo (m)", 
-                    plot_bgcolor="rgba(0,0,0,0)", 
-                    paper_bgcolor="rgba(0,0,0,0)"
-                )
-                
-                # Batasin sumbu X maksimal 50 jam aja biar puncaknya keliatan jelas!
-                fig2.update_xaxes(range=[0, 50])
+                # Hindari frekuensi 0 biar grafiknya bagus
+                fig2.add_trace(go.Scatter(x=xf[1:], y=yf[1:], mode='lines', fill='tozeroy', line=dict(color='#8A2BE2')))
+                fig2.update_layout(title="FFT Power Spectrum", xaxis_title="Frekuensi (cycles/hour)", yaxis_title="Amplitudo", plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)")
                 st.plotly_chart(fig2, use_container_width=True)
 
             # --- TAB 3: UTIDE HARMONIC ---
             with tab3:
-                st.subheader("🌊 3) Table of Dominant Constituents & Reconstruction")
-                
-                # Cek dulu apakah variabel utide_coef-nya beneran ada isinya
-                if 'utide_pred' in valid_df.columns and utide_coef is not None:
-                    
-                    # Kita rapihin datanya buat tabel
-                    const_data = {
-                        'Constituent': utide_coef['name'],
-                        'Amplitude (m)': utide_coef['A'],
-                        'Phase (deg)': utide_coef['g']
-                    }
-                    
-                    constituents_df = pd.DataFrame(const_data)
-                    
-                    # Urutin dari yang amplitudonya paling gede biar kelihatan siapa yang dominan
-                    constituents_df = constituents_df.sort_values(by='Amplitude (m)', ascending=False).reset_index(drop=True)
-                    
-                    # TAMPILIN TABEL (Ini nih yang tadi kosong!)
-                    st.dataframe(constituents_df, use_container_width=True)
-                    
-                    st.write("---")
-                    
-                    # GRAFIK PERBANDINGAN
+                st.subheader("🌊 UTide Reconstruction")
+                if 'utide_pred' in valid_df.columns:
                     fig3 = go.Figure()
                     fig3.add_trace(go.Scatter(x=valid_df[time_col], y=valid_df['clean_wl'], mode='lines', name='Observasi', line=dict(color='rgba(0, 181, 173, 0.5)')))
                     fig3.add_trace(go.Scatter(x=valid_df[time_col], y=valid_df['utide_pred'], mode='lines', name='UTide Prediksi', line=dict(color='#FF5733')))
@@ -201,10 +150,11 @@ if process_btn:
                     fig3.update_layout(title="Perbandingan Observasi vs Prediksi Pasang Surut", plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)")
                     st.plotly_chart(fig3, use_container_width=True)
                 else:
-                    st.warning("Duh, mesin UTide belum berhasil ngeluarin hasil nih. Coba cek format datanya ya!")
+                    st.info("Data UTide belum tersedia.")
+
             # --- TAB 4: REGRESSION ---
             with tab4:
-                st.subheader("📏 4) Trend Analysis (Linear Regression)")
+                st.subheader("📏 Trend Analysis (Linear Regression)")
                 st.write(f"Persamaan Garis: y = {reg_coef[0]:.6f}x + {reg_coef[1]:.6f}")
                 
                 fig4 = go.Figure()
@@ -216,4 +166,4 @@ if process_btn:
 
 else:
     # Tampilan kosong kalau belum di-klik
-    st.info("👈 Atur parameternya di sebelah kiri dulu, terus klik tombol Execute yaa~")
+    st.info("👈 Atur parameternya di sebelah kiri dulu, terus klik tombol Execute")
