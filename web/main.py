@@ -211,4 +211,4 @@ if process_btn:
 
 else:
     # Tampilan kosong kalau belum di-klik
-    st.info("👈 Atur parameternya di sebelah kiri dulu, terus klik tombol Execute ya sayang~")
+    st.info("👈 Atur parameternya di sebelah kiri dulu, terus klik tombol Execute yaa~")
