@@ -64,8 +64,9 @@ if process_btn:
     if uploaded_file is None:
         st.error("Jangan lupa masukin data CSV-nya dulu ya! ")
     else:
-        with st.spinner("Mesin HydroTide lagi kerja keras nih, tunggu bentar yaaa... "):
-            
+        with st.spinner("Lagi ngitung persentase data bolong... ✨"):
+        # Sekarang load_tide_data ngeluarin dua output
+            df, missing_percent = load_tide_data(uploaded_file, time_col, wl_col)
             # EKSEKUSI SEMUA MODUL CORE
             # 1. Utils: Baca & Bersihin Spike
             df = load_tide_data(uploaded_file, time_col, wl_col)
@@ -108,20 +109,23 @@ if process_btn:
             ])
             
             # --- TAB 1: PREPROCESSING ---
+            # --- TAB 1: PREPROCESSING ---
             with tab1:
                 st.subheader(f"📊 1) Statistics of the Data - {station_name}")
                 
-                # Hitung data tambahan buat metrik sayang~
-                valid_wl = len(df['clean_wl'].dropna())
-                spikes_removed = (df[wl_col] != df['clean_wl']).sum()
-                median_dt = df[time_col].diff().median().total_seconds() / 60
+                valid_wl = len(df) - df['is_missing'].sum()
+                spikes_removed = (df[wl_col] != df['clean_wl']).sum() # Ini spike yang dibersihin Hampel
                 
-                # Bikin baris pertama (4 kolom)
                 m1, m2, m3, m4 = st.columns(4)
-                m1.metric("Valid WL", f"{valid_wl}")
-                m2.metric("Missing (%)", "0.00") 
-                m3.metric("Median dt (min)", f"{median_dt:.2f}")
-                m4.metric("Spikes removed", f"{spikes_removed}")
+                m1.metric("Valid WL", f"{int(valid_wl)}")
+                
+                # TAMPILIN PERSENTASE ASLI DI SINI!
+                m2.metric("Missing (%)", f"{missing_percent:.2f}%")
+                
+                m3.metric("Median dt (min)", f"{df[time_col].diff().median().total_seconds()/60:.2f}")
+                m4.metric("Spikes removed", f"{int(spikes_removed)}")
+                
+                # ... sisa metrik Mean, Min, Max ...
                 
                 # Bikin baris kedua (3 kolom)
                 m5, m6, m7 = st.columns(3)
