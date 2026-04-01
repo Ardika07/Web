@@ -14,7 +14,7 @@ def load_tide_data(filepath, time_col, wl_col):
         # Kalau si detektif (Sniffer) gagal, kita paksa pakai titik koma (;)
         # Karena biasanya data dari Excel Indonesia pakenya itu sayang~
         filepath.seek(0) # Reset pembacaan file ke awal ya!
-        df = pd.read_csv(filepath, sep=';')
+        df = pd.read_csv(filepath)
     
     # Selebihnya kodenya tetep sama yaaa...
     # Pastiin nama kolomnya bener (Case Sensitive!)
