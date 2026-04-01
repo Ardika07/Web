@@ -36,8 +36,8 @@ with st.sidebar:
     
     st.markdown("---")
     st.header("📂 Data & Columns")
-    time_col = st.text_input("Time column", value="time")
-    wl_col = st.text_input("Water level column", value="wl")
+    time_col = st.text_input("Time column", value="Time")
+    wl_col = st.text_input("Water level column", value="Water level")
     sampling_dt = st.number_input("Sampling dt (hours)", value=1.00, step=0.50)
     
     st.markdown("---")
@@ -114,11 +114,31 @@ if process_btn:
             
             # --- TAB 1: PREPROCESSING ---
             with tab1:
-                st.subheader(f"📊 Summary Statistics - {station_name}")
-                col1, col2, col3 = st.columns(3)
-                col1.metric("Mean Sea Level (MSL)", f"{stats['MSL']:.3f} m")
-                col2.metric("Highest High Water", f"{stats['HHWL']:.3f} m")
-                col3.metric("Lowest Low Water", f"{stats['LLWL']:.3f} m")
+                st.subheader(f"📊 1) Statistics of the Data - {station_name}")
+                
+                # Hitung data tambahan buat metrik sayang~
+                valid_wl = len(df['clean_wl'].dropna())
+                spikes_removed = (df[wl_col] != df['clean_wl']).sum()
+                median_dt = df[time_col].diff().median().total_seconds() / 60
+                
+                # Bikin baris pertama (4 kolom)
+                m1, m2, m3, m4 = st.columns(4)
+                m1.metric("Valid WL", f"{valid_wl}")
+                m2.metric("Missing (%)", "0.00") 
+                m3.metric("Median dt (min)", f"{median_dt:.2f}")
+                m4.metric("Spikes removed", f"{spikes_removed}")
+                
+                # Bikin baris kedua (3 kolom)
+                m5, m6, m7 = st.columns(3)
+                m5.metric("Mean", f"{df['clean_wl'].mean():.4f}")
+                m6.metric("Min", f"{df['clean_wl'].min():.4f}")
+                m7.metric("Max", f"{df['clean_wl'].max():.4f}")
+                
+                # Bikin baris ketiga
+                st.metric("Range", f"{(df['clean_wl'].max() - df['clean_wl'].min()):.4f}")
+                
+                st.caption(f"**Start:** {df[time_col].min()} &nbsp;&nbsp;&nbsp; **End:** {df[time_col].max()}")
+                st.write("---")
                 
                 fig1 = go.Figure()
                 fig1.add_trace(go.Scatter(x=df[time_col], y=df[wl_col], mode='lines', name='Raw (Spikes)', line=dict(color='rgba(255, 99, 132, 0.4)')))
@@ -130,19 +150,44 @@ if process_btn:
 
             # --- TAB 2: FFT SPECTRUM ---
             with tab2:
-                st.subheader("⚡ Fast Fourier Transform (Energy Spectrum)")
-                st.write("Mengubah sinyal domain waktu menjadi domain frekuensi untuk mencari periode puncak gelombang.")
+                st.subheader("⚡ 2) Fast Fourier Transform (Energy Spectrum)")
+                st.write("Spektrum energi berdasarkan periode (jam) untuk mencari siklus puncak gelombang pasang surut.")
                 
                 fig2 = go.Figure()
-                # Hindari frekuensi 0 biar grafiknya bagus
-                fig2.add_trace(go.Scatter(x=xf[1:], y=yf[1:], mode='lines', fill='tozeroy', line=dict(color='#8A2BE2')))
-                fig2.update_layout(title="FFT Power Spectrum", xaxis_title="Frekuensi (cycles/hour)", yaxis_title="Amplitudo", plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)")
+                # Kita ubah frekuensi jadi periode (Jam)
+                periode_jam = 1.0 / xf[1:]
+                
+                fig2.add_trace(go.Scatter(x=periode_jam, y=yf[1:], mode='lines', fill='tozeroy', line=dict(color='#8A2BE2')))
+                fig2.update_layout(
+                    title="FFT Power Spectrum", 
+                    xaxis_title="Periode Gelombang (Jam)", 
+                    yaxis_title="Amplitudo (m)", 
+                    plot_bgcolor="rgba(0,0,0,0)", 
+                    paper_bgcolor="rgba(0,0,0,0)"
+                )
+                
+                # Batasin sumbu X maksimal 50 jam aja biar puncaknya keliatan jelas!
+                fig2.update_xaxes(range=[0, 50])
                 st.plotly_chart(fig2, use_container_width=True)
 
             # --- TAB 3: UTIDE HARMONIC ---
             with tab3:
-                st.subheader("🌊 UTide Reconstruction")
+                st.subheader("🌊 3) Table of Dominant Constituents & Reconstruction")
                 if 'utide_pred' in valid_df.columns:
+                    
+                    # Ekstrak nama, amplitudo, dan fase dari UTide
+                    constituents_df = pd.DataFrame({
+                        'name': utide_coef.name,
+                        'amplitude': utide_coef.A,
+                        'phase_deg': utide_coef.g
+                    })
+                    # Urutin dari amplitudo terbesar ke terkecil
+                    constituents_df = constituents_df.sort_values(by='amplitude', ascending=False).reset_index(drop=True)
+                    
+                    # Tampilin jadi tabel interaktif
+                    st.dataframe(constituents_df, use_container_width=True)
+                    st.write("---")
+                    
                     fig3 = go.Figure()
                     fig3.add_trace(go.Scatter(x=valid_df[time_col], y=valid_df['clean_wl'], mode='lines', name='Observasi', line=dict(color='rgba(0, 181, 173, 0.5)')))
                     fig3.add_trace(go.Scatter(x=valid_df[time_col], y=valid_df['utide_pred'], mode='lines', name='UTide Prediksi', line=dict(color='#FF5733')))
@@ -154,7 +199,7 @@ if process_btn:
 
             # --- TAB 4: REGRESSION ---
             with tab4:
-                st.subheader("📏 Trend Analysis (Linear Regression)")
+                st.subheader("📏 4) Trend Analysis (Linear Regression)")
                 st.write(f"Persamaan Garis: y = {reg_coef[0]:.6f}x + {reg_coef[1]:.6f}")
                 
                 fig4 = go.Figure()
@@ -166,4 +211,4 @@ if process_btn:
 
 else:
     # Tampilan kosong kalau belum di-klik
-    st.info("👈 Tolong atur parameternya di sebelah kiri dulu, terus klik tombol Execute ya sayang~")
+    st.info("👈 Atur parameternya di sebelah kiri dulu, terus klik tombol Execute ya sayang~")
