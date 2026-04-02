@@ -64,7 +64,7 @@ if process_btn:
     if uploaded_file is None:
         st.error("jangan lupa masukin data CSV-nya dulu ")
     else:
-        with st.spinner("Mesin HydroTide lagi kerja keras nih, tunggu bentar... "):
+        with st.spinner("Mesin HydroTide sedang bekerja, tunggu sebentar... "):
             
             # ==========================================
             # EKSEKUSI SEMUA MODUL CORE
