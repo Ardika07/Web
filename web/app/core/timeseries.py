@@ -19,12 +19,8 @@ def extract_utide(time_series, wl_series, latitude):
     from utide import solve, reconstruct
     import numpy as np
     import pandas as pd
-
-    # 1. Ikutin gaya dosen: Langsung jadiin numpy datetime64 & float
     t = pd.to_datetime(time_series).to_numpy() 
     u = wl_series.to_numpy(dtype=float)
-
-    # 2. Panggil solve pake parameter sakti dosen
     coef = solve(
         t, u,
         lat=latitude,
