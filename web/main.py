@@ -62,9 +62,9 @@ uploaded_file = st.file_uploader("Upload CSV Data Pasang Surut di sini yaa~", ty
 
 if process_btn:
     if uploaded_file is None:
-        st.error("Ihhh, jangan lupa masukin data CSV-nya dulu yaa ")
+        st.error("jangan lupa masukin data CSV-nya dulu ")
     else:
-        with st.spinner("Mesin HydroTide lagi kerja keras nih, tunggu bentar yaaa... "):
+        with st.spinner("Mesin HydroTide lagi kerja keras nih, tunggu bentar... "):
             
             # ==========================================
             # EKSEKUSI SEMUA MODUL CORE
@@ -92,14 +92,14 @@ if process_btn:
                 utide_coef, utide_reconstruct = extract_utide(valid_df[time_col], valid_df['clean_wl'], lat)
                 valid_df['utide_pred'] = utide_reconstruct
             except Exception as e:
-                st.warning(f"Aduh, UTide-nya ngambek nih: {e}")
+                st.warning(f"UTide sedang bermasalah {e}")
                 
             # 5. Core: Regression
             # Bikin waktu jadi array numerik buat X (contoh: urutan jam)
             x_num = np.arange(len(valid_df))
             trend_line, reg_coef = linear_fitting(x_num, valid_df['clean_wl'].to_numpy())
             
-            st.success("Yeayyy! Semua komputasi dari folder `app/core/` udah beres!")
+            st.success("Semua komputasi dari folder `app/core/` udah beres!")
             
             # ==========================================
             # UI TABS PRESENTATION
